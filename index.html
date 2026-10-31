@@ -1,0 +1,110 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Unity Image Gallery</title>
+    <style>
+        body {
+            max-width: 1100px;
+            margin: 32px auto;
+            padding: 0 16px;
+            font-family: system-ui, sans-serif;
+            background: #f5f6f8;
+            color: #202124;
+        }
+        h1 { text-align: center; }
+        #status { text-align: center; color: #555; }
+        #gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 18px;
+        }
+        .item {
+            padding: 12px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px #0001;
+            overflow-wrap: anywhere;
+        }
+        .item img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: contain;
+            background: #eee;
+            image-rendering: pixelated;
+        }
+        .text { margin-top: 10px; white-space: pre-wrap; }
+        time { display: block; margin-top: 8px; color: #666; font-size: 12px; }
+    </style>
+</head>
+<body>
+<h1>Unity Image Gallery</h1>
+<p id="status" role="status">Loading images...</p>
+<main id="gallery"></main>
+
+<script>
+    const API =
+        "https://YOUR_PROJECT_REF.supabase.co/functions/v1/gallery";
+
+    const gallery = document.getElementById("gallery");
+    const status = document.getElementById("status");
+
+    async function refreshGallery() {
+        try {
+            const response = await fetch(API, { cache: "no-store" });
+            if (!response.ok) throw new Error("Gallery request failed");
+
+            const result = await response.json();
+            const items = result.items || [];
+
+            // Build elements using textContent to avoid interpreting
+            // user-submitted strings as HTML.
+            const fragment = document.createDocumentFragment();
+
+            for (const item of items) {
+                const card = document.createElement("article");
+                card.className = "item";
+
+                const img = document.createElement("img");
+                img.width = 256;
+                img.height = 256;
+                img.alt = "Submitted pixel image";
+                img.loading = "lazy";
+                img.src = item.imageUrl;
+
+                const text1 = document.createElement("div");
+                text1.className = "text";
+                text1.textContent = item.text1;
+
+                const text2 = document.createElement("div");
+                text2.className = "text";
+                text2.textContent = item.text2;
+
+                const time = document.createElement("time");
+                time.dateTime = item.created_at;
+                time.textContent =
+                    new Date(item.created_at).toLocaleString();
+
+                card.append(img, text1, text2, time);
+                fragment.append(card);
+            }
+
+            gallery.replaceChildren(fragment);
+            status.textContent = items.length
+                ? `Showing ${items.length} latest images`
+                : "No images submitted yet.";
+        } catch (error) {
+            console.error(error);
+            status.textContent =
+                "Unable to load images. Retrying shortly.";
+        }
+    }
+
+    refreshGallery();
+    setInterval(refreshGallery, 5000);
+</script>
+</body>
+</html>
